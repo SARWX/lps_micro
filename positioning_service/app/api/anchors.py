@@ -1,44 +1,55 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from typing import List
 
 from app.models import Anchor
+from app.database import get_all_anchors, get_anchor_by_id, delete_anchor
 
 router = APIRouter()
 
-@router.get("/anchors", response_model=List[Anchor])
-async def get_all_anchors():
-    """Получение списка всех анкеров"""
-    from app.main import app
-    anchors = app.state.anchors
-    
-    result = []
-    for anchor_id, data in anchors.items():
-        result.append(Anchor(
-            anchor_id=anchor_id,
-            x=data["x"],
-            y=data["y"],
-            z=data["z"],
-            description=data.get("description"),
-            is_active=True
-        ))
-    
-    return result
 
-@router.get("/anchors/{anchor_id}", response_model=Anchor)
-async def get_anchor(anchor_id: str):
-    """Получение информации о конкретном анкере"""
-    from app.main import app
-    anchors = app.state.anchors
+@router.get(
+    "/anchors/{anchor_id}",
+    response_model=Anchor,
+    responses={
+        200: {"description": "Успешный запрос", "model": Anchor},
+        404: {"description": "Анкер с указанным ID не найден"}
+    }
+)
+async def get_anchor_by_id(anchor_id: str):
+    """
+    Получение информации о конкретном анкере.
     
-    if anchor_id not in anchors:
-        raise HTTPException(status_code=404, detail="Anchor not found")
+    Возвращает детальную конфигурацию анкера по его ID.
+    """
+    anchor_data = get_anchor_by_id(anchor_id)
     
-    data = anchors[anchor_id]
-    return Anchor(
-        anchor_id=anchor_id,
-        x=data["x"],
-        y=data["y"],
-        z=data["z"],
-        description=data.get("description"),
-        is_active=True
-    )
+    if not anchor_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Anchor '{anchor_id}' not found"
+        )
+    
+    return Anchor(**anchor_data)
+
+
+@router.delete(
+    "/anchors/{anchor_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Анкер успешно удален"},
+        404: {"description": "Анкер с указанным ID не найден"}
+    }
+)
+async def delete_anchor_endpoint(anchor_id: str):
+    """
+    Удаление анкера из системы.
+    
+    Удаляет конфигурацию анкера. Используйте с осторожностью.
+    """
+    if not delete_anchor(anchor_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Anchor '{anchor_id}' not found"
+        )
+    
+    return None  # 204 No Content

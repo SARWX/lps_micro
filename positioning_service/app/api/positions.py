@@ -1,66 +1,110 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Query
 from datetime import datetime
-from typing import Optional
+from typing import List
 
-from app.models import Position
-from app.database import get_latest_position
+from app.models import Position, ErrorResponse
+from app.database import get_latest_position, get_position_history
 
 router = APIRouter()
 
-def get_cache():
-    from app.main import app
-    return app.state.position_cache
 
-@router.get("/positions/current/{tag_id}", response_model=Position)
-async def get_current_position(
-    tag_id: str,
-    cache: dict = Depends(get_cache)
-):
-    """Получение последней известной позиции метки"""
-    # Сначала проверяем кэш
-    if tag_id in cache:
-        return cache[tag_id]
+@router.get(
+    "/positions/current/{tag_id}",
+    response_model=Position,
+    responses={
+        200: {
+            "description": "Успешный запрос. Возвращает позицию.",
+            "model": Position
+        },
+        404: {
+            "description": "Позиция не найдена",
+            "model": ErrorResponse
+        }
+    }
+)
+async def get_current_position(tag_id: str):
+    """
+    Получение последней вычисленной позиции метки.
     
-    # Если нет в кэше, ищем в БД
-    position = get_latest_position(tag_id)
-    if position:
-        # Обновляем кэш
-        cache[tag_id] = position
-        return position
+    Возвращает последние известные координаты из кэша сервиса.
+    """
+    position_data = get_latest_position(tag_id)
     
-    raise HTTPException(
-        status_code=404,
-        detail=f"Position for tag '{tag_id}' not found"
-    )
+    if not position_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ErrorResponse(
+                error_code="POSITION_NOT_FOUND",
+                message=f"Position for tag '{tag_id}' not found"
+            ).model_dump()
+        )
+    
+    return Position(**position_data)
 
-@router.get("/positions/history/{tag_id}", response_model=list[Position])
+
+@router.get(
+    "/positions/history/{tag_id}",
+    response_model=List[Position],
+    responses={
+        200: {
+            "description": "Успешный запрос. Возвращает массив позиций.",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "tag_id": "tag-employee-123",
+                            "x": 10.5,
+                            "y": 20.3,
+                            "z": 0.0,
+                            "timestamp": "2023-11-28T14:30:00Z",
+                            "accuracy": 0.5
+                        }
+                    ]
+                }
+            }
+        },
+        400: {
+            "description": "Неверные параметры запроса",
+            "model": ErrorResponse
+        }
+    }
+)
 async def get_position_history(
     tag_id: str,
-    start_time: datetime = Query(..., description="Начало периода"),
-    end_time: datetime = Query(..., description="Конец периода"),
-    limit: int = Query(1000, ge=1, le=10000)
+    start_time: datetime = Query(
+        ..., 
+        description="Начало периода (включительно) в формате ISO 8601"
+    ),
+    end_time: datetime = Query(
+        ..., 
+        description="Конец периода (включительно) в формате ISO 8601"
+    ),
+    limit: int = Query(
+        1000, 
+        ge=1, 
+        le=10000, 
+        description="Максимальное количество записей для возврата"
+    )
 ):
-    """Получение истории перемещений за период"""
-    # Заглушка - в реальности запрос к БД
-    # SELECT * FROM positions WHERE tag_id = ? 
-    # AND timestamp BETWEEN ? AND ? LIMIT ?
+    """
+    Получение истории перемещений метки за период.
     
-    from app.database import get_db
-    import sqlite3
-    
+    Данные извлекаются из постоянного хранилища (БД).
+    """
     try:
-        with get_db() as conn:
-            rows = conn.execute(
-                """SELECT * FROM positions 
-                   WHERE tag_id = ? AND timestamp BETWEEN ? AND ?
-                   ORDER BY timestamp DESC LIMIT ?""",
-                (tag_id, start_time, end_time, limit)
-            ).fetchall()
-            
-            if not rows:
-                return []
-            
-            return [dict(row) for row in rows]
-            
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        positions = get_position_history(tag_id, start_time, end_time, limit)
+        
+        if not positions:
+            # Возвращаем пустой список вместо ошибки
+            return []
+        
+        return [Position(**pos) for pos in positions]
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorResponse(
+                error_code="INVALID_PARAMETERS",
+                message=str(e)
+            ).model_dump()
+        )
