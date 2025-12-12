@@ -31,8 +31,7 @@ class MeasurementBatch(BaseModel):
 class ErrorResponse(BaseModel):
     error_code: str
     message: str
-    timestamp: datetime = Field(default_factory=datetime.now)
-
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 class ValidationErrorResponse(ErrorResponse):
     details: List[dict[str, str]]

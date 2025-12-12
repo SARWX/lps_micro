@@ -15,13 +15,15 @@ router = APIRouter()
         404: {"description": "Анкер с указанным ID не найден"}
     }
 )
-async def get_anchor_by_id(anchor_id: str):
+async def get_anchor_endpoint(anchor_id: str):  # ← ИЗМЕНИ ИМЯ
     """
     Получение информации о конкретном анкере.
     
     Возвращает детальную конфигурацию анкера по его ID.
     """
-    anchor_data = get_anchor_by_id(anchor_id)
+    from app.database import get_anchor_by_id
+    
+    anchor_data = get_anchor_by_id(anchor_id)  # ← Теперь это функция из БД
     
     if not anchor_data:
         raise HTTPException(

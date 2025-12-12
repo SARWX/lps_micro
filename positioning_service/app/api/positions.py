@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 
 from app.models import Position, ErrorResponse
-from app.database import get_latest_position, get_position_history
+from app.database import get_latest_position_db, get_position_history_db
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ async def get_current_position(tag_id: str):
     
     Возвращает последние известные координаты из кэша сервиса.
     """
-    position_data = get_latest_position(tag_id)
+    position_data = get_latest_position_db(tag_id)
     
     if not position_data:
         raise HTTPException(
@@ -92,7 +92,7 @@ async def get_position_history(
     Данные извлекаются из постоянного хранилища (БД).
     """
     try:
-        positions = get_position_history(tag_id, start_time, end_time, limit)
+        positions = get_position_history_db(tag_id, start_time, end_time, limit)
         
         if not positions:
             # Возвращаем пустой список вместо ошибки
