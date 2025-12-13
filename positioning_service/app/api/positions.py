@@ -12,35 +12,24 @@ router = APIRouter()
     "/positions/current/{tag_id}",
     response_model=Position,
     responses={
-        200: {
-            "description": "Успешный запрос. Возвращает позицию.",
-            "model": Position
-        },
-        404: {
-            "description": "Позиция не найдена",
-            "model": ErrorResponse
-        }
+        200: {"model": Position},
+        404: {"model": ErrorResponse}
     }
 )
 async def get_current_position(tag_id: str):
-    """
-    Получение последней вычисленной позиции метки.
-    
-    Возвращает последние известные координаты из кэша сервиса.
-    """
     position_data = get_latest_position_db(tag_id)
     
     if not position_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ErrorResponse(
-                error_code="POSITION_NOT_FOUND",
-                message=f"Position for tag '{tag_id}' not found"
-            ).model_dump()
+            detail={
+                "error_code": "POSITION_NOT_FOUND",
+                "message": f"Position for tag '{tag_id}' not found",
+                "timestamp": datetime.now().isoformat()
+            }
         )
     
     return Position(**position_data)
-
 
 @router.get(
     "/positions/history/{tag_id}",

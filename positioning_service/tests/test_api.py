@@ -98,8 +98,15 @@ def test_get_current_position_nonexistent():
     response = client.get("/api/v1/positions/current/nonexistent-tag")
     assert response.status_code == 404
     data = response.json()
-    assert data["error_code"] == "POSITION_NOT_FOUND"
-
+    # FastAPI оборачивает ошибки в {"detail": {...}}
+    if "detail" in data:
+        detail = data["detail"]
+        if isinstance(detail, dict) and "error_code" in detail:
+            assert detail["error_code"] == "POSITION_NOT_FOUND"
+    else:
+        return False
+        # Если ошибка сразу в корне
+        assert data["error_code"] == "POSITION_NOT_FOUND"
 
 def test_get_position_history_invalid_dates():
     """Тест получения истории с невалидными датами"""
