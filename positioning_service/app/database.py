@@ -38,6 +38,7 @@ def init_db():
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS calculated_positions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        batch_id TEXT NOT NULL,
                         tag_id TEXT NOT NULL,
                         x REAL NOT NULL,
                         y REAL NOT NULL,
@@ -78,10 +79,26 @@ def init_db():
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         batch_id TEXT NOT NULL,
                         gateway_id TEXT NOT NULL,
-                        timestamp TEXT NOT NULL,
+                        measurement_timestamp TEXT NOT NULL,
                         anchor_id TEXT NOT NULL,
                         tag_id TEXT NOT NULL,
                         distance_m REAL NOT NULL
+                    )
+                """)
+                print("   ✅ CREATE TABLE executed")
+            except Exception as e:
+                print(f"   ❌ Error: {e}")
+
+            # 4. processed_batches
+            print("\n3. Creating processed_batches...")
+            try:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS processed_batches (
+                        batch_id TEXT PRIMARY KEY,
+                        gateway_id TEXT NOT NULL,
+                        measurement_count INTEGER NOT NULL,
+                        processed_at TEXT,
+                        status TEXT DEFAULT 'pending'
                     )
                 """)
                 print("   ✅ CREATE TABLE executed")

@@ -16,7 +16,7 @@ init_db()
 
 client = TestClient(app)
 
-client = TestClient(app)
+# client = TestClient(app)
 
 
 def test_health_check():
