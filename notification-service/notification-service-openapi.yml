@@ -1,0 +1,479 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: |
+    Микросервис для доставки уведомлений через различные каналы (email, SMS, Telegram, push-уведомления).
+    Обеспечивает управление шаблонами сообщений, настройками пользователей и историей отправленных уведомлений.
+  version: 1.0.0
+  contact:
+    name: Команда разработки
+    email: notifications@rtls.example.com
+servers:
+  - url: http://localhost:8086/api/v1
+    description: Локальный сервер разработки
+  - url: https://notifications.rtls.example.com/api/v1
+    description: Продуктивный сервер
+tags:
+  - name: Notifications
+    description: Управление уведомлениями и их отправка
+  - name: Templates
+    description: Управление шаблонами уведомлений
+  - name: Users
+    description: Управление настройками пользователей
+  - name: History
+    description: Просмотр истории уведомлений
+  - name: Health
+    description: Проверка работоспособности сервиса
+paths:
+  /notifications/send:
+    post:
+      tags:
+        - Notifications
+      summary: Отправка уведомления
+      description: Отправляет уведомление по указанным каналам
+      operationId: sendNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+      responses:
+        '202':
+          description: Уведомление поставлено в очередь для отправки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Некорректные данные запроса
+        '404':
+          description: Пользователь или шаблон не найдены
+  /notifications/templates:
+    get:
+      tags:
+        - Templates
+      summary: Получение списка шаблонов
+      description: Возвращает список всех доступных шаблонов уведомлений
+      operationId: getTemplates
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Категория шаблонов (security, maintenance, analytics)
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [email, sms, telegram, push, webhook]
+          description: Канал доставки
+      responses:
+        '200':
+          description: Успешный запрос
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+  /notifications/templates/{template_id}:
+    get:
+      tags:
+        - Templates
+      summary: Получение информации о шаблоне
+      description: Возвращает детальную информацию о шаблоне
+      operationId: getTemplateById
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Успешный запрос
+        '404':
+          description: Шаблон не найден
+    put:
+      tags:
+        - Templates
+      summary: Обновление шаблона
+      description: Обновляет существующий шаблон уведомления
+      operationId: updateTemplate
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateUpdate'
+      responses:
+        '200':
+          description: Шаблон успешно обновлен
+        '404':
+          description: Шаблон не найден
+  /users/preferences:
+    get:
+      tags:
+        - Users
+      summary: Получение предпочтений уведомлений
+      description: Возвращает настройки пользователя для получения уведомлений
+      operationId: getUserPreferences
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Успешный запрос
+        '404':
+          description: Настройки для пользователя не найдены
+    put:
+      tags:
+        - Users
+      summary: Обновление предпочтений уведомлений
+      description: Обновляет настройки пользователя для получения уведомлений
+      operationId: updateUserPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Настройки успешно обновлены
+        '400':
+          description: Некорректные данные запроса
+  /notifications/history:
+    get:
+      tags:
+        - History
+      summary: Получение истории уведомлений
+      description: Возвращает историю отправленных уведомлений
+      operationId: getNotificationHistory
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID пользователя для фильтрации
+        - name: start_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Начало периода
+        - name: end_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Конец периода
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [email, sms, telegram, push, webhook]
+          description: Канал доставки
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, sent, failed, delivered]
+          description: Статус уведомления
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+          description: Максимальное количество записей
+      responses:
+        '200':
+          description: Успешный запрос
+        '400':
+          description: Некорректные параметры запроса
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Проверка работоспособности сервиса
+      description: Проверяет статус сервиса и его зависимости
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Сервис работает нормально
+        '503':
+          description: Сервис недоступен
+components:
+  schemas:
+    NotificationChannel:
+      type: string
+      enum: [email, sms, telegram, push, webhook]
+      description: Канал доставки уведомления
+    NotificationPriority:
+      type: string
+      enum: [low, medium, high, critical]
+      description: Приоритет уведомления
+    NotificationRequest:
+      type: object
+      required:
+        - recipients
+        - message
+        - channels
+      properties:
+        recipients:
+          type: array
+          items:
+            type: string
+          description: Список получателей
+        message:
+          type: string
+          description: Текст сообщения
+        subject:
+          type: string
+          description: Тема сообщения (для email)
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannel'
+        priority:
+          $ref: '#/components/schemas/NotificationPriority'
+        template_id:
+          type: string
+          format: uuid
+          description: ID шаблона для форматирования сообщения
+        context:
+          type: object
+          additionalProperties:
+            type: string
+          description: Контекстные данные для шаблона
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              filename:
+                type: string
+              content:
+                type: string
+                format: binary
+              content_type:
+                type: string
+        webhook_url:
+          type: string
+          format: uri
+          description: URL для webhook (если канал webhook)
+    NotificationResponse:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [queued, processing, sent, failed]
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannel'
+        recipients_count:
+          type: integer
+    Template:
+      type: object
+      properties:
+        template_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [security, maintenance, analytics, system]
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+        content:
+          type: object
+          properties:
+            subject:
+              type: string
+            body:
+              type: string
+            html_body:
+              type: string
+        variables:
+          type: array
+          items:
+            type: string
+        default_priority:
+          $ref: '#/components/schemas/NotificationPriority'
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TemplateUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: object
+          properties:
+            subject:
+              type: string
+            body:
+              type: string
+            html_body:
+              type: string
+        variables:
+          type: array
+          items:
+            type: string
+        default_priority:
+          $ref: '#/components/schemas/NotificationPriority'
+        is_active:
+          type: boolean
+    UserPreferences:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+        channels:
+          type: object
+          properties:
+            email:
+              type: boolean
+              default: true
+            sms:
+              type: boolean
+              default: false
+            telegram:
+              type: boolean
+              default: true
+            push:
+              type: boolean
+              default: true
+            webhook:
+              type: boolean
+              default: false
+        categories:
+          type: object
+          properties:
+            security:
+              $ref: '#/components/schemas/NotificationPriority'
+            maintenance:
+              $ref: '#/components/schemas/NotificationPriority'
+            analytics:
+              $ref: '#/components/schemas/NotificationPriority'
+            system:
+              $ref: '#/components/schemas/NotificationPriority'
+        schedule:
+          type: object
+          properties:
+            do_not_disturb:
+              type: boolean
+              default: false
+            quiet_hours_start:
+              type: string
+              pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+            quiet_hours_end:
+              type: string
+              pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+        contact_details:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+            telegram_id:
+              type: string
+            push_token:
+              type: string
+            webhook_url:
+              type: string
+              format: uri
+    NotificationHistoryItem:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+        recipient:
+          type: string
+        subject:
+          type: string
+        message_preview:
+          type: string
+        status:
+          type: string
+          enum: [pending, sent, failed, delivered]
+        sent_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: string
+          format: date-time
+        failed_reason:
+          type: string
+        priority:
+          $ref: '#/components/schemas/NotificationPriority'
+        template_id:
+          type: string
+          format: uuid
+    Error:
+      type: object
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              error:
+                type: string

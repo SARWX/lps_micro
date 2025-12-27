@@ -40,3 +40,16 @@ services:
       - positioning-service
       - access-control-service
       - data-aggregator-service
+      
+  notification-service:
+    build: ./notification_service
+    ports:
+      - "8005:8086"
+    volumes:
+      - ./notification_service:/app
+      - ./notification_service/data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - positioning-service
+      - access-control-service
+      - alert-service
