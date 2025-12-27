@@ -48,7 +48,6 @@ paths:
               standardBatch:
                 summary: Стандартный пакет измерений
                 value:
-                  gateway_id: "gateway-001"
                   timestamp: "2023-11-28T14:30:00Z"
                   measurements: [
                     { anchor_id: "anchor-1", tag_id: "tag-employee-123", distance_m: 12.5 },
@@ -255,13 +254,9 @@ components:
     MeasurementBatch:
       type: object
       required:
-        - gateway_id
         - timestamp
         - measurements
       properties:
-        gateway_id:
-          type: string
-          description: Идентификатор шлюза, отправившего пакет.
         timestamp:
           type: string
           format: date-time

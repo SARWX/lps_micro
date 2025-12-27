@@ -14,7 +14,6 @@ class SingleMeasurement(BaseModel):
 
 
 class MeasurementBatch(BaseModel):
-    gateway_id: str
     timestamp: datetime
     measurements: List[SingleMeasurement] = Field(..., min_length=3, description="Минимум 3 измерения")
     

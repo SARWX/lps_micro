@@ -36,7 +36,6 @@ async def process_batch_async(batch_id: str, batch_data: MeasurementBatch):
         
         save_measurements_batch(
             batch_id=batch_id,
-            gateway_id=batch_data.gateway_id,
             measurements=measurements_dict
         )
         
@@ -163,7 +162,6 @@ async def process_batch_async(batch_id: str, batch_data: MeasurementBatch):
         from app.database import save_measurements_batch
         save_measurements_batch(
             batch_id=batch_id,
-            gateway_id=batch_data.gateway_id,
             measurements=measurements_dict
         )
         

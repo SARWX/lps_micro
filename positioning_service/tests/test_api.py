@@ -29,7 +29,6 @@ def test_health_check():
 def test_submit_measurements_valid():
     """Тест отправки валидных измерений"""
     payload = {
-        "gateway_id": "test-gateway-001",
         "timestamp": datetime.now().isoformat(),
         "measurements": [
             {"anchor_id": "anchor-1", "tag_id": "tag-001", "distance_m": 10.5},
@@ -48,7 +47,6 @@ def test_submit_measurements_valid():
 def test_submit_measurements_invalid():
     """Тест отправки невалидных измерений (недостаточно анкеров)"""
     payload = {
-        "gateway_id": "test-gateway-001",
         "timestamp": datetime.now().isoformat(),
         "measurements": [
             {"anchor_id": "anchor-1", "tag_id": "tag-001", "distance_m": 10.5},
@@ -63,7 +61,6 @@ def test_submit_measurements_invalid():
 def test_submit_measurements_negative_distance():
     """Тест с отрицательным расстоянием"""
     payload = {
-        "gateway_id": "test-gateway-001",
         "timestamp": datetime.now().isoformat(),
         "measurements": [
             {"anchor_id": "anchor-1", "tag_id": "tag-001", "distance_m": -5.0},  # Отрицательное!

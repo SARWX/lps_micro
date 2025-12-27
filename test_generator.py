@@ -170,7 +170,6 @@ class TagSimulator:
                 })
         
         return {
-            "gateway_id": f"gateway-simulator-{random.randint(1, 5)}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "measurements": measurements
         }
@@ -181,7 +180,6 @@ class TagSimulator:
             batch = self.create_measurement_batch()
             
             print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Отправка пакета:")
-            print(f"  Gateway: {batch['gateway_id']}")
             print(f"  Меток: {len(self.tags)}")
             print(f"  Измерений: {len(batch['measurements'])}")
             

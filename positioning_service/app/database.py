@@ -78,7 +78,6 @@ def init_db():
                     CREATE TABLE IF NOT EXISTS raw_measurements (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         batch_id TEXT NOT NULL,
-                        gateway_id TEXT NOT NULL,
                         measurement_timestamp TEXT NOT NULL,
                         anchor_id TEXT NOT NULL,
                         tag_id TEXT NOT NULL,
@@ -95,7 +94,6 @@ def init_db():
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS processed_batches (
                         batch_id TEXT PRIMARY KEY,
-                        gateway_id TEXT NOT NULL,
                         measurement_count INTEGER NOT NULL,
                         processed_at TEXT,
                         status TEXT DEFAULT 'pending'
@@ -152,7 +150,7 @@ def init_db():
     except Exception as e:
         print(f"   Verification failed: {e}")
 
-def save_measurements_batch(batch_id: str, gateway_id: str, 
+def save_measurements_batch(batch_id: str, 
                            measurements: List[Dict[str, Any]]) -> int:
     """Сохранение пакета измерений в БД"""
     with get_db() as conn:
@@ -161,19 +159,19 @@ def save_measurements_batch(batch_id: str, gateway_id: str,
         # Сохраняем метаинформацию о батче
         cursor.execute(
             """INSERT INTO processed_batches 
-               (batch_id, gateway_id, measurement_count) 
+               (batch_id, measurement_count) 
                VALUES (?, ?, ?)""",
-            (batch_id, gateway_id, len(measurements))
+            (batch_id, len(measurements))
         )
         
         # Сохраняем каждое измерение
         for meas in measurements:
             cursor.execute(
                 """INSERT INTO raw_measurements 
-                   (batch_id, gateway_id, measurement_timestamp, 
+                   (batch_id, measurement_timestamp, 
                     anchor_id, tag_id, distance_m) 
                    VALUES (?, ?, ?, ?, ?, ?)""",
-                (batch_id, gateway_id, meas.get('timestamp'),
+                (batch_id, meas.get('timestamp'),
                  meas['anchor_id'], meas['tag_id'], meas['distance_m'])
             )
         
