@@ -1,0 +1,676 @@
+openapi: 3.0.3
+info:
+  title: Alert Service API
+  description: |
+    Микросервис для управления геозонами, правилами доступа и генерации оповещений о нарушениях.
+    Обеспечивает привязку правил к зонам, проверку позиций на соответствие правилам
+    и триггеринг уведомлений при обнаружении нарушений.
+  version: 1.0.0
+  contact:
+    name: Команда разработки
+    email: alerts@rtls.example.com
+servers:
+  - url: http://localhost:8083/api/v1
+    description: Локальный сервер разработки
+  - url: https://alerts.rtls.example.com/api/v1
+    description: Продуктивный сервер
+tags:
+  - name: Geozones
+    description: Управление геозонами (зоны безопасности, доступа и т.д.)
+  - name: Rules
+    description: Управление правилами доступа и безопасности
+  - name: Incidents
+    description: Управление инцидентами и нарушениями
+  - name: Alerts
+    description: Генерация и управление оповещениями
+  - name: Health
+    description: Проверка работоспособности сервиса
+
+paths:
+  /geozones:
+    get:
+      tags:
+        - Geozones
+      summary: Получение списка всех геозон
+      description: Возвращает список всех зарегистрированных геозон.
+      operationId: getAllGeozones
+      responses:
+        '200':
+          description: Успешный запрос
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Geozone'
+        '500':
+          description: Ошибка сервера
+    post:
+      tags:
+        - Geozones
+      summary: Создание новой геозоны
+      description: Создает новую геозону (зону безопасности, доступа и т.д.).
+      operationId: createGeozone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeozoneCreate'
+      responses:
+        '201':
+          description: Геозона успешно создана
+        '400':
+          description: Некорректные данные геозоны
+  /geozones/check:
+    post:
+      tags:
+        - Geozones
+      summary: Проверка нахождения точки в геозонах
+      description: Проверяет, находится ли указанная точка внутри какой-либо геозоны.
+      operationId: checkPointInGeozones
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointCheckRequest'
+      responses:
+        '200':
+          description: Успешная проверка
+        '400':
+          description: Некорректные данные запроса
+  /rules:
+    get:
+      tags:
+        - Rules
+      summary: Получение списка всех правил
+      description: Возвращает список всех правил доступа и безопасности.
+      operationId: getAllRules
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Успешный запрос
+        '500':
+          description: Ошибка сервера
+    post:
+      tags:
+        - Rules
+      summary: Создание нового правила
+      description: Создает новое правило доступа или безопасности.
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleCreate'
+      responses:
+        '201':
+          description: Правило успешно создано
+        '400':
+          description: Некорректные данные правила
+  /rules/validate:
+    post:
+      tags:
+        - Rules
+      summary: Проверка позиции на соответствие правилам
+      description: Проверяет, соответствует ли текущая позиция установленным правилам.
+      operationId: validatePosition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionValidationRequest'
+      responses:
+        '200':
+          description: Результат проверки
+        '400':
+          description: Некорректные данные запроса
+  /incidents:
+    get:
+      tags:
+        - Incidents
+      summary: Получение списка инцидентов
+      description: Возвращает список инцидентов с возможностью фильтрации.
+      operationId: getIncidents
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, acknowledged, resolved, false_positive]
+        - name: priority
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: start_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: Успешный запрос
+        '400':
+          description: Некорректные параметры запроса
+    post:
+      tags:
+        - Incidents
+      summary: Создание нового инцидента
+      description: Создает новый инцидент вручную (для тестирования или специальных случаев).
+      operationId: createIncident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncidentCreate'
+      responses:
+        '201':
+          description: Инцидент успешно создан
+        '400':
+          description: Некорректные данные инцидента
+  /incidents/acknowledge:
+    post:
+      tags:
+        - Incidents
+      summary: Подтверждение инцидентов
+      description: Подтверждает один или несколько инцидентов.
+      operationId: acknowledgeIncidents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncidentAcknowledgeRequest'
+      responses:
+        '200':
+          description: Инциденты успешно подтверждены
+        '400':
+          description: Некорректные данные запроса
+  /alerts:
+    post:
+      tags:
+        - Alerts
+      summary: Генерация оповещения
+      description: Генерирует оповещение на основе инцидента или правила.
+      operationId: generateAlert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertRequest'
+      responses:
+        '202':
+          description: Оповещение поставлено в очередь для отправки
+        '400':
+          description: Некорректные данные запроса
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Проверка работоспособности сервиса
+      description: Проверяет статус сервиса и его зависимости
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Сервис работает нормально
+        '503':
+          description: Сервис недоступен
+
+components:
+  schemas:
+    GeozoneCoordinates:
+      type: object
+      properties:
+        min_x:
+          type: number
+        max_x:
+          type: number
+        min_y:
+          type: number
+        max_y:
+          type: number
+        min_z:
+          type: number
+          default: 0.0
+        max_z:
+          type: number
+          default: 3.0
+        center_x:
+          type: number
+        center_y:
+          type: number
+        radius:
+          type: number
+        vertices:
+          type: array
+          items:
+            type: object
+            properties:
+              x:
+                type: number
+              y:
+                type: number
+    
+    GeozoneCreate:
+      type: object
+      required:
+        - name
+        - zone_type
+        - shape
+        - coordinates
+      properties:
+        name:
+          type: string
+        zone_type:
+          type: string
+          enum: [restricted, danger, safe, work_area, parking, other]
+        description:
+          type: string
+        shape:
+          type: string
+          enum: [rectangle, circle, polygon]
+        coordinates:
+          $ref: '#/components/schemas/GeozoneCoordinates'
+        buffer_meters:
+          type: number
+          default: 0
+        is_active:
+          type: boolean
+          default: true
+    
+    Geozone:
+      allOf:
+        - $ref: '#/components/schemas/GeozoneCreate'
+        - type: object
+          properties:
+            geozone_id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    
+    PointCheckRequest:
+      type: object
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        z:
+          type: number
+          default: 0.0
+        geozone_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    
+    PointCheckResult:
+      type: object
+      properties:
+        point:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            z:
+              type: number
+        intersections:
+          type: array
+          items:
+            type: object
+            properties:
+              geozone_id:
+                type: string
+                format: uuid
+              geozone_name:
+                type: string
+              zone_type:
+                type: string
+              is_inside:
+                type: boolean
+    
+    RuleSchedule:
+      type: object
+      properties:
+        days_of_week:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+        start_time:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+        end_time:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+    
+    RuleCreate:
+      type: object
+      required:
+        - name
+        - entity_type
+        - geozone_id
+        - action
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        entity_type:
+          type: string
+          enum: [employee, equipment, all]
+        entity_id:
+          type: string
+        role_required:
+          type: string
+        geozone_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [allow, deny, alert]
+        schedule:
+          $ref: '#/components/schemas/RuleSchedule'
+        threshold_seconds:
+          type: integer
+          description: Минимальное время в зоне для срабатывания правила
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+        is_active:
+          type: boolean
+          default: true
+        meta
+          type: object
+    
+    Rule:
+      allOf:
+        - $ref: '#/components/schemas/RuleCreate'
+        - type: object
+          properties:
+            rule_id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    
+    PositionCheck:
+      type: object
+      required:
+        - x
+        - y
+        - timestamp
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        z:
+          type: number
+          default: 0.0
+        timestamp:
+          type: string
+          format: date-time
+    
+    PositionValidationRequest:
+      type: object
+      required:
+        - entity_id
+        - position
+      properties:
+        entity_id:
+          type: string
+        position:
+          $ref: '#/components/schemas/PositionCheck'
+    
+    RuleViolation:
+      type: object
+      properties:
+        rule_id:
+          type: string
+          format: uuid
+        rule_name:
+          type: string
+        geozone_id:
+          type: string
+          format: uuid
+        geozone_name:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    
+    PositionValidationResult:
+      type: object
+      properties:
+        entity_id:
+          type: string
+        position:
+          $ref: '#/components/schemas/PositionCheck'
+        is_compliant:
+          type: boolean
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleViolation'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleViolation'
+    
+    IncidentCreate:
+      type: object
+      required:
+        - rule_id
+        - entity_id
+        - position
+        - severity
+      properties:
+        rule_id:
+          type: string
+          format: uuid
+        entity_id:
+          type: string
+        position:  
+          type: object
+          required:
+            - x
+            - y
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            z:
+              type: number
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        meta
+          type: object
+    
+    Incident:
+      type: object
+      properties:
+        incident_id:
+          type: string
+          format: uuid
+        rule_id:
+          type: string
+          format: uuid
+        rule_name:
+          type: string
+        entity_id:
+          type: string
+        entity_name:
+          type: string
+        position:
+          type: object
+        geozone_id:
+          type: string
+          format: uuid
+        geozone_name:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [active, acknowledged, resolved, false_positive]
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+        acknowledged_by:
+          type: string
+        resolved_at:
+          type: string
+          format: date-time
+        resolved_by:
+          type: string
+        meta
+          type: object
+    
+    IncidentAcknowledgeRequest:
+      type: object
+      required:
+        - incident_ids
+        - acknowledged_by
+      properties:
+        incident_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        acknowledged_by:
+          type: string
+        comment:
+          type: string
+    
+    AlertRequest:
+      type: object
+      required:
+        - incident_id
+        - channels
+      properties:
+        incident_id:
+          type: string
+          format: uuid
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [email, sms, telegram, push, webhook]
+        priority_override:
+          type: string
+          enum: [low, medium, high, critical]
+        custom_message:
+          type: string
+        recipients:
+          type: array
+          items:
+            type: string
+        webhook_url:
+          type: string
+    
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  error:
+                    type: string
+    
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        dependencies:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                latency_ms:
+                  type: number

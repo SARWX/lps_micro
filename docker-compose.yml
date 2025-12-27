@@ -22,8 +22,21 @@ services:
       - "8003:8085"
     volumes:
       - ./data_aggregator_service:/app
-      - ./data_aggregator_service/data:/app/data  # Для хранения файлов экспорта
+      - ./data_aggregator_service//app/data
     restart: unless-stopped
     depends_on:
       - positioning-service
       - access-control-service
+  
+  alert-service:
+    build: ./alert_service
+    ports:
+      - "8004:8083"
+    volumes:
+      - ./alert_service:/app
+      - ./alert_service//app/data
+    restart: unless-stopped
+    depends_on:
+      - positioning-service
+      - access-control-service
+      - data-aggregator-service
