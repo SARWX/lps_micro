@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   positioning-service:
     build: ./positioning_service
@@ -16,3 +15,15 @@ services:
     volumes:
       - ./access_control_service:/app
     restart: unless-stopped
+  
+  data-aggregator-service:
+    build: ./data_aggregator_service
+    ports:
+      - "8003:8085"
+    volumes:
+      - ./data_aggregator_service:/app
+      - ./data_aggregator_service/data:/app/data  # Для хранения файлов экспорта
+    restart: unless-stopped
+    depends_on:
+      - positioning-service
+      - access-control-service
