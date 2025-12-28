@@ -32,6 +32,10 @@ def init_db():
         with get_db() as conn:
             print("✅ Database connection established")
             
+            # Включение поддержки FOREIGN KEY (важно!)
+            conn.execute("PRAGMA foreign_keys = ON")
+            print("🔧 FOREIGN KEYS support enabled")
+            
             # 1. calculated_positions
             print("\n1. Creating calculated_positions...")
             try:
@@ -44,7 +48,12 @@ def init_db():
                         y REAL NOT NULL,
                         z REAL NOT NULL DEFAULT 0.0,
                         accuracy REAL NOT NULL DEFAULT 1.0,
-                        calculation_timestamp TEXT NOT NULL
+                        calculation_timestamp TEXT NOT NULL,
+                        
+                        -- Внешние ключи
+                        FOREIGN KEY (batch_id) 
+                            REFERENCES processed_batches(batch_id)
+                            ON DELETE CASCADE
                     )
                 """)
                 print("   ✅ CREATE TABLE executed")
@@ -81,15 +90,23 @@ def init_db():
                         measurement_timestamp TEXT NOT NULL,
                         anchor_id TEXT NOT NULL,
                         tag_id TEXT NOT NULL,
-                        distance_m REAL NOT NULL
+                        distance_m REAL NOT NULL,
+                        
+                        -- Внешние ключи
+                        FOREIGN KEY (batch_id) 
+                            REFERENCES processed_batches(batch_id)
+                            ON DELETE CASCADE,
+                        FOREIGN KEY (anchor_id) 
+                            REFERENCES anchors(anchor_id)
+                            ON DELETE CASCADE
                     )
                 """)
                 print("   ✅ CREATE TABLE executed")
             except Exception as e:
                 print(f"   ❌ Error: {e}")
 
-            # 4. processed_batches
-            print("\n3. Creating processed_batches...")
+            # 4. processed_batches (создается перед таблицами с FK на него)
+            print("\n4. Creating processed_batches...")
             try:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS processed_batches (
@@ -104,13 +121,13 @@ def init_db():
                 print(f"   ❌ Error: {e}")
             
             # Проверь какие таблицы создались
-            print("\n4. Checking created tables...")
+            print("\n5. Checking created tables...")
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = cursor.fetchall()
-            print(f"   📋 Tables in DB: {[row[0] for row in tables]}")  # ← row[0] извлекает имя
+            print(f"   📋 Tables in DB: {[row[0] for row in tables]}")
             
             # Демо-данные анкеров
-            print("\n5. Adding demo anchors...")
+            print("\n6. Adding demo anchors...")
             cursor = conn.execute("SELECT COUNT(*) FROM anchors")
             count = cursor.fetchone()[0]
             print(f"   Current anchors count: {count}")
@@ -118,7 +135,7 @@ def init_db():
             if count == 0:
                 print("   Adding demo data...")
                 conn.execute("""
-                    INSERT INTO anchors (anchor_id, x, y, z, description)
+                    INSERT OR IGNORE INTO anchors (anchor_id, x, y, z, description)
                     VALUES 
                         ('anchor-1', 0.0, 0.0, 0.0, 'Северная стена'),
                         ('anchor-2', 0.0, 1.0, 0.0, 'Южная стена'),
