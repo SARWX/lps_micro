@@ -5,11 +5,9 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import least_squares
 
-# def simple_trilateration(measurements: List[Dict], 
-#                           anchors: Dict[str, Tuple[float, float, float]]) -> Dict[str, float]:
+
 def simple_trilateration(measurements: List[Dict], 
-                       anchors: Dict[str, Tuple[float, float, float]],
-                       initial_guess: Tuple[float, float, float] = (0, 0, 0)) -> Dict[str, float]:
+                       anchors: Dict[str, Tuple[float, float, float]]) -> Dict[str, float]:
     """
     Трилатерация с использованием SciPy (наиболее точный метод).
     Решает задачу минимизации невязки.
@@ -38,7 +36,6 @@ def simple_trilateration(measurements: List[Dict],
     # Решаем задачу оптимизации
     result = least_squares(
         residuals,
-        initial_guess,
         bounds=([-100, -100, -100], [100, 100, 100]),  # ограничения
         method='trf'  # метод доверительных областей
     )
