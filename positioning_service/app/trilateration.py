@@ -9,7 +9,7 @@ from scipy.optimize import least_squares
 def simple_trilateration(measurements: List[Dict], 
                        anchors: Dict[str, Tuple[float, float, float]]) -> Dict[str, float]:
     """
-    Трилатерация с использованием SciPy (наиболее точный метод).
+    Трилатерация с использованием SciPy.
     Решает задачу минимизации невязки.
     """
     if len(measurements) < 3:

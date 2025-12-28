@@ -22,8 +22,9 @@ def get_db():
         raise
     finally:
         conn.close()
+
 def init_db():
-    """Инициализация базы данных - с дебагом"""
+    """Инициализация базы данных"""
     print("=" * 50)
     print("🟢 INIT_DB STARTED")
     print("=" * 50)
@@ -32,7 +33,7 @@ def init_db():
         with get_db() as conn:
             print("✅ Database connection established")
             
-            # Включение поддержки FOREIGN KEY (важно!)
+            # Включение поддержки FOREIGN KEY
             conn.execute("PRAGMA foreign_keys = ON")
             print("🔧 FOREIGN KEYS support enabled")
             
@@ -120,7 +121,7 @@ def init_db():
             except Exception as e:
                 print(f"   ❌ Error: {e}")
             
-            # Проверь какие таблицы создались
+            # Какие таблицы создались ????
             print("\n5. Checking created tables...")
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = cursor.fetchall()
@@ -195,19 +196,6 @@ def save_measurements_batch(batch_id: str,
         conn.commit()
         return cursor.lastrowid
 
-
-def get_measurements_for_trilateration(tag_id: str, 
-                                      timestamp: datetime) -> List[Dict]:
-    """Получение измерений для трилатерации"""
-    with get_db() as conn:
-        cursor = conn.execute("""
-            SELECT anchor_id, distance_m 
-            FROM raw_measurements 
-            WHERE tag_id = ? AND measurement_timestamp = ?
-            ORDER BY anchor_id
-        """, (tag_id, timestamp))
-        
-        return [dict(row) for row in cursor.fetchall()]
 
 def get_latest_position_db(tag_id: str) -> Optional[dict]:
     """Получение последней позиции из БД"""

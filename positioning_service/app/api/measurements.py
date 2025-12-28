@@ -57,9 +57,6 @@ async def process_batch_async(batch_id: str, batch_data: MeasurementBatch):
                 calculated_positions[tag_id] = position
                 logger.info(f"Calculated position for {tag_id}: {position}")
         
-        # Здесь можно сохранить вычисленные позиции в БД
-        # и обновить кэш
-        
         logger.info(f"Batch {batch_id} processed successfully")
         
     except Exception as e:
@@ -135,60 +132,3 @@ async def submit_measurements(batch: MeasurementBatch):
                 message=f"Failed to process measurements: {str(e)}"
             ).model_dump()
         )
-from app.trilateration import save_calculated_position  # <-- ИМПОРТ
-
-async def process_batch_async(batch_id: str, batch_data: MeasurementBatch):
-    """Асинхронная обработка пакета измерений"""
-    try:
-        # Получаем актуальные анкеры из БД
-        from app.trilateration import get_anchors_from_db
-        anchors = get_anchors_from_db()
-        
-        if not anchors:
-            logger.warning(f"No active anchors found in database")
-            return
-        
-        # Сохраняем сырые измерения
-        measurements_dict = [
-            {
-                'anchor_id': m.anchor_id,
-                'tag_id': m.tag_id,
-                'distance_m': m.distance_m,
-                'timestamp': batch_data.timestamp
-            }
-            for m in batch_data.measurements
-        ]
-        
-        from app.database import save_measurements_batch
-        save_measurements_batch(
-            batch_id=batch_id,
-            measurements=measurements_dict
-        )
-        
-        # Группируем по tag_id для вычисления позиций
-        measurements_by_tag = {}
-        for m in batch_data.measurements:
-            if m.tag_id not in measurements_by_tag:
-                measurements_by_tag[m.tag_id] = []
-            measurements_by_tag[m.tag_id].append({
-                'anchor_id': m.anchor_id,
-                'distance_m': m.distance_m
-            })
-        
-        # Вычисляем позиции для каждой метки
-        from app.trilateration import simple_trilateration, save_calculated_position
-        for tag_id, measurements in measurements_by_tag.items():
-            if len(measurements) >= 3:
-                try:
-                    position = simple_trilateration(measurements, anchors)
-                    
-                    # Сохраняем вычисленную позицию в БД
-                    save_calculated_position(batch_id, tag_id, position)
-                    logger.info(f"Calculated position for {tag_id}: {position}")
-                except Exception as trilat_error:
-                    logger.error(f"Trilateration failed for {tag_id}: {trilat_error}")
-                    
-        logger.info(f"Batch {batch_id} processed successfully")
-        
-    except Exception as e:
-        logger.error(f"Error processing batch {batch_id}: {e}")

@@ -43,7 +43,7 @@ async def get_all_anchors_endpoint():
         404: {"description": "Анкер с указанным ID не найден"}
     }
 )
-async def get_anchor_endpoint(anchor_id: str):  # ← ИЗМЕНИ ИМЯ
+async def get_anchor_endpoint(anchor_id: str):
     """
     Получение информации о конкретном анкере.
     
@@ -51,7 +51,7 @@ async def get_anchor_endpoint(anchor_id: str):  # ← ИЗМЕНИ ИМЯ
     """
     from app.database import get_anchor_by_id
     
-    anchor_data = get_anchor_by_id(anchor_id)  # ← Теперь это функция из БД
+    anchor_data = get_anchor_by_id(anchor_id)
     
     if not anchor_data:
         raise HTTPException(

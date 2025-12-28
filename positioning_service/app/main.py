@@ -25,7 +25,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Обработчики ошибок (оставляем как есть)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = []
