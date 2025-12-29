@@ -168,34 +168,43 @@ def init_db():
     except Exception as e:
         print(f"   Verification failed: {e}")
 
-def save_measurements_batch(batch_id: str, 
-                           measurements: List[Dict[str, Any]]) -> int:
-    """Сохранение пакета измерений в БД"""
-    with get_db() as conn:
-        cursor = conn.cursor()
+def save_measurements_batch(batch_id: str, measurements: List[Dict]):
+    """Сохранение пакета измерений"""
+    try:
+        logger.info(f"Saving {len(measurements)} measurements for batch {batch_id}")
         
-        # Сохраняем метаинформацию о батче
-        cursor.execute(
-            """INSERT INTO processed_batches 
-               (batch_id, measurement_count) 
-               VALUES (?, ?, ?)""",
-            (batch_id, len(measurements))
-        )
-        
-        # Сохраняем каждое измерение
-        for meas in measurements:
-            cursor.execute(
-                """INSERT INTO raw_measurements 
-                   (batch_id, measurement_timestamp, 
-                    anchor_id, tag_id, distance_m) 
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (batch_id, meas.get('timestamp'),
-                 meas['anchor_id'], meas['tag_id'], meas['distance_m'])
-            )
-        
-        conn.commit()
-        return cursor.lastrowid
-
+        with get_db() as conn:
+            for i, measurement in enumerate(measurements):
+                # Преобразуем timestamp в строку
+                timestamp = measurement.get('timestamp')
+                if hasattr(timestamp, 'isoformat'):
+                    timestamp_str = timestamp.isoformat()
+                else:
+                    timestamp_str = str(timestamp)
+                
+                # Параметры для SQL
+                params = (
+                    batch_id,
+                    timestamp_str,
+                    measurement['anchor_id'],
+                    measurement['tag_id'],
+                    measurement['distance_m']
+                )
+                
+                logger.debug(f"Inserting measurement {i}: {params}")
+                
+                conn.execute("""
+                    INSERT INTO raw_measurements 
+                    (batch_id, measurement_timestamp, anchor_id, tag_id, distance_m)
+                    VALUES (?, ?, ?, ?, ?)
+                """, params)
+            
+            conn.commit()
+            logger.info(f"Successfully saved {len(measurements)} measurements")
+            
+    except Exception as e:
+        logger.error(f"Database error in save_measurements_batch: {e}", exc_info=True)
+        raise
 
 def get_latest_position_db(tag_id: str) -> Optional[dict]:
     """Получение последней позиции из БД"""

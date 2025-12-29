@@ -33,9 +33,16 @@ def simple_trilateration(measurements: List[Dict],
         """Функция невязки: разница между расчетными и измеренными расстояниями"""
         return np.sqrt(np.sum((anchor_coords - point)**2, axis=1)) - distances
     
+    initial_guess = np.array([
+            np.mean([coord[0] for coord in anchor_coords]),
+            np.mean([coord[1] for coord in anchor_coords]),
+            np.mean([coord[2] for coord in anchor_coords])
+        ])
+    
     # Решаем задачу оптимизации
     result = least_squares(
         residuals,
+        initial_guess, 
         bounds=([-100, -100, -100], [100, 100, 100]),  # ограничения
         method='trf'  # метод доверительных областей
     )

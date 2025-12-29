@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Query
 from fastapi.responses import JSONResponse
+from datetime import datetime
 import logging
 import json
 from app.models import (
@@ -62,8 +63,8 @@ async def generate_alert_endpoint(alert_request: AlertRequest):
     }
 )
 async def get_alert_history_endpoint(
-    start_time: str = Query(None, description="Начало периода"),
-    end_time: str = Query(None, description="Конец периода"),
+    start_time: datetime = Query(None, description="Начало периода"),
+    end_time: datetime = Query(None, description="Конец периода"),
     status: str = Query(None, description="Статус оповещений", enum=["sent", "failed", "pending"]),
     limit: int = Query(100, description="Максимальное количество записей", ge=1, le=1000)
 ):
@@ -80,7 +81,7 @@ async def get_alert_history_endpoint(
         )
         
         result = []
-        for alert_data in alerts_:
+        for alert_data in alerts_data:
             # Парсим JSON поля
             if alert_data.get('channels'):
                 alert_data['channels'] = json.loads(alert_data['channels'])

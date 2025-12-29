@@ -22,7 +22,7 @@ services:
       - "8003:8085"
     volumes:
       - ./data_aggregator_service:/app
-      - ./data_aggregator_service//app/data
+      - ./data_aggregator_service:/app/data
     restart: unless-stopped
     depends_on:
       - positioning-service
@@ -34,7 +34,7 @@ services:
       - "8004:8083"
     volumes:
       - ./alert_service:/app
-      - ./alert_service//app/data
+      - ./alert_service:/app/data
     restart: unless-stopped
     depends_on:
       - positioning-service

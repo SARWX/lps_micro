@@ -4,7 +4,7 @@ from app.main import app
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
-        host="127.0.0.1",
-        port=8083,
+        host="0.0.0.0",
+        port=8086,  # Уникальный порт для notification-service
         reload=True
     )

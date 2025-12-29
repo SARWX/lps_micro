@@ -26,7 +26,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Обработчики ошибок (оставляем как есть)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = []
@@ -49,7 +48,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     import traceback
-    traceback.print_exc()  # Для отладки
+    traceback.print_exc()
     
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -64,11 +63,6 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def root():
     """Перенаправление на документацию Swagger"""
     return RedirectResponse(url="/docs")
-
-# Health endpoint (упрощенный)
-@app.get("/health", include_in_schema=False)
-async def health_check():
-    return {"status": "healthy", "service": "access_control"}
 
 # Подключаем роутеры
 app.include_router(entities_router, prefix="/api/v1")

@@ -735,34 +735,61 @@ def get_applicable_rules(entity_type: str, entity_id: Optional[str] = None,
         return filtered_result
 
 # ==================== CRUD для violations ====================
-def create_violation(violation_data: dict) -> Dict[str, Any]:
+def create_violation(violation_data) -> Dict[str, Any]:
     """Создание записи о нарушении"""
-    with get_db() as conn:
-        violation_id = str(uuid4())
-        
-        conn.execute("""
-            INSERT INTO violations 
-            (violation_id, rule_id, rule_name, entity_id, entity_name, entity_type,
-             geofence_id, geofence_name, position, severity, description, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            violation_id,
-            str(violation_data['rule_id']),
-            violation_data['rule_name'],
-            violation_data['entity_id'],
-            violation_data.get('entity_name'),
-            violation_data.get('entity_type'),
-            str(violation_data['geofence_id']),
-            violation_data.get('geofence_name'),
-            json.dumps(violation_data['position']),
-            violation_data['severity'],
-            violation_data.get('description'),
-            violation_data['timestamp']
-        ))
-        conn.commit()
-        
-        # Получаем созданное нарушение
-        return get_violation_by_id(violation_id)
+    try:
+        with get_db() as conn:
+            violation_id = str(uuid4())
+            
+            # ✅ СПРАВИЛ: Работаем с Pydantic моделью правильно
+            # Извлекаем данные из модели Violation
+            rule_id = str(violation_data.rule_id)
+            rule_name = violation_data.rule_name
+            entity_id = violation_data.entity_id
+            entity_name = violation_data.entity_name
+            entity_type = violation_data.entity_type
+            geofence_id = str(violation_data.geofence_id)
+            geofence_name = violation_data.geofence_name
+            severity = violation_data.severity
+            description = violation_data.description or ""
+            timestamp = violation_data.timestamp
+            
+            # Извлекаем position (это тоже может быть Pydantic модель)
+            position = violation_data.position
+            if hasattr(position, 'model_dump'):
+                position_dict = position.model_dump()
+            elif hasattr(position, 'dict'):
+                position_dict = position.dict()
+            else:
+                position_dict = position
+            
+            conn.execute("""
+                INSERT INTO violations 
+                (violation_id, rule_id, rule_name, entity_id, entity_name, entity_type,
+                 geofence_id, geofence_name, position, severity, description, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                violation_id,
+                rule_id,
+                rule_name,
+                entity_id,
+                entity_name,
+                entity_type,
+                geofence_id,
+                geofence_name,
+                json.dumps(position_dict),
+                severity,
+                description,
+                timestamp
+            ))
+            conn.commit()
+            
+            # Получаем созданное нарушение
+            return get_violation_by_id(violation_id)
+            
+    except Exception as e:
+        logger.error(f"Error creating violation: {e}", exc_info=True)
+        raise
 
 def get_violations(start_time: Optional[str] = None, end_time: Optional[str] = None,
                   entity_id: Optional[str] = None, severity: Optional[str] = None,
